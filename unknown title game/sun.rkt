@@ -1,20 +1,22 @@
 #lang racket/gui
 
-(provide ship%)
+(provide sun%)
 
-(define ship%
+(define sun%
   (class object%
-    (init-field [ship-color 'red])
+    ;(init-field [ship-color 'red])
 
     (define ship-bitmap
-      (read-bitmap "ship.png" #:backing-scale 1.2)
+      (read-bitmap "sun.png"
+                   #:backing-scale 6
+                  )
       
       )
 
     (define moving-to 'left)
 
     (define x-pos 0)
-    (define y-pos 0)
+    (define y-pos -30)
     (define MAX_SPEED 10)
 
     (define left-x-pos 0)

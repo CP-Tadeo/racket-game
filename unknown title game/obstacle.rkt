@@ -35,6 +35,14 @@
       (set! y-pos (- y-position (/ (send obstacle-bitmap get-width) 2)))
       )
 
+    (define/public (set-speed! new_speed)
+      (set! obs-speed new_speed)
+      )
+
+    (define/public (get-speed)
+      obs-speed
+      )
+
     (define/public (lower-obstacle)
       (set! y-pos (+ y-pos 5))
       )

@@ -4,6 +4,7 @@
 
 (require "ship.rkt")
 (require "obstacle.rkt")
+(require "sun.rkt")
 
 (define FRAME_HEIGHT 400)
 (define FRAME_WIDTH 1550)
@@ -14,7 +15,11 @@
 (define MAX_SPEED 7)
 (define current-direction 'neutral)
 (define previous-direction 'left)
-(define health_points 100)
+(define health_points 5)
+(define current_hp health_points)
+(define increment_speed 0.3)
+
+(define time_elapsed 0)
 
 
 (define main-frame
@@ -40,9 +45,10 @@
     (define/private (custom-paint-callback canvas dc)
       ;draw background
 
-      
+      (send sun draw dc)
       (send dc set-pen LINE_COLOR 8 'solid)
       (send dc draw-line 100 0 100 FRAME_HEIGHT)
+      
       ;draw things
       (send spaceship draw dc)
       
@@ -51,9 +57,9 @@
       (send orange_obstacle draw dc)
       (send yellow_obstacle draw dc)
       (send dc set-text-foreground "green")
-      (send dc draw-text "hp" 30 0)
+      (send dc draw-text "hp" 5 0)
       (cond
-        [(<= health_points 30) (send dc set-text-foreground "red")]
+        [(<= health_points 3) (send dc set-text-foreground "red")]
         )
       (send dc draw-text (format "~v" health_points) 30 20)
       )
@@ -63,8 +69,8 @@
     (send this set-canvas-background (make-color 0 0 100))
 
     (define/override (on-char event)
-      (display (send event get-key-release-code))
-      (newline)
+      ;(display (send event get-key-release-code))
+      ;(newline)
       (case (send event get-key-release-code)
         ['left (set! previous-direction current-direction) (set! current-direction 'left)]
         ['right (set! previous-direction current-direction) (set! current-direction 'right)]
@@ -84,6 +90,7 @@
           ;(send spaceship move)
           ;(display (/ FRAME_WIDTH 4))
           ;limits are placed here
+          (send sun set-x-position! (- (send sun get-x) 0.2))
           (case current-direction
             ['left (unless (< (send spaceship get-x) 0)
                     (send spaceship set-x-position! (- (send spaceship get-x) SPEED))
@@ -127,7 +134,23 @@
           (for ([obstacle obstacle-list])
             (send obstacle move-obstacle)
             (when (< (get-field x-pos obstacle) 0)
+              (set! current_hp health_points)
+              (set! health_points (- current_hp 1))
+              (cond
+            [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
+            )
+
+              
             (send obstacle move-to-far)
+            (when (< health_points 0)
+              (set! health_points 0)
+              )
+
+              (case (get-field obstacle-color obstacle)
+                ['red (send obstacle set-y-position! (+ (random 320) 30))]
+                ['yellow (send obstacle set-y-position! (+ (random 320) 30))]
+                ['orange (send obstacle set-y-position! (+ (random 320) 30))]
+                )
               #|
               (if (equal? (get-field square-color square) 'red)
             (if (= 1 (random 2))
@@ -139,21 +162,49 @@
                 (send square set-x-position! FOURTH_LANE)
                 )
             )|#
-              (case (get-field obstacle-color obstacle)
-                ['red (send obstacle set-y-position! (+ (random 330) 30))]
-                ['yellow (send obstacle set-y-position! (+ (random 330) 30))]
-                ['orange (send obstacle set-y-position! (+ (random 330) 30))]
+              
+
+              #|(set! time_elapsed (+ 1 time_elapsed))
+              (display time_elapsed)
+              (when (= (modulo time_elapsed 3) 1)
+                [(send obstacle set-speed! (+ (send obstacle get-speed) increment_speed))]
                 )
+              |#
+              #|(cond
+            [(= (modulo time_elapsed 3) 1)
+             ;(send obstacle set-speed! (+ (send obstacle get-speed) 0.5)
+             (case (get-field obstacle-color obstacle)
+                ['red (send obstacle set-speed! (+ (send obstacle get-speed) 0.5))]
+                ['yellow (send obstacle set-speed! (+ (send obstacle get-speed) 0.6))]
+                ['orange (send obstacle set-speed! (+ (send obstacle get-speed) 0.8))]
+           )
+             
+             ]
+            )|#
+              
             )
-            )
-          (when (for/or ([obstacle obstacle-list]) (did-collide obstacle spaceship))
-            (define current_hp health_points)
-            (set! health_points (- current_hp 1))
+            (when (did-collide obstacle spaceship)
+              (set! current_hp health_points)
+              (set! health_points (- current_hp 0))
+              (send obstacle move-to-far)
+            
+            
             (cond
-            [(= health_points 0) (send game-timer stop)]
+            [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
             )
             ;(set! game-state 'ended)
+
+              (case (get-field obstacle-color obstacle)
+                ['red (send obstacle set-y-position! (+ (random 320) 30))]
+                ['yellow (send obstacle set-y-position! (+ (random 320) 30))]
+                ['orange (send obstacle set-y-position! (+ (random 320) 30))]
+                )
             )
+
+            
+            )
+          
+          
               
           
           ;(set! current-direction 'neutral
@@ -175,6 +226,7 @@
   )
 
 (define spaceship (new ship%))
+(define sun (new sun%))
 (define red_obstacle (new obstacle% [obstacle-color 'red]))
 (send red_obstacle set-x-position! FRAME_WIDTH)
 (send red_obstacle set-y-position! (+ 0 (+ (random 330) 30)))
