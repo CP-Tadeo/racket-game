@@ -5,12 +5,19 @@
 (define sun%
   (class object%
     ;(init-field [ship-color 'red])
+    (define chooser (+ 1 (random 4)))
 
     (define ship-bitmap
-      (read-bitmap "sun.png"
-                   #:backing-scale 6
+      (read-bitmap
+       
+       (case chooser
+                [(1) "sun.png"]
+                [(2) "black-hole.png"]
+                [(3) "moon.png"]
+                [(4) "death-star.png"]
+                )
+                   ;#:backing-scale 10
                   )
-      
       )
 
     (define moving-to 'left)

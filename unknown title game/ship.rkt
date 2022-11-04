@@ -91,7 +91,7 @@
       )
 
     (define/public (get-bottom-y)
-      (+ (+ y-pos (send ship-bitmap get-height) 40))
+      (+ (+ y-pos (send ship-bitmap get-height) 0))
       )
     )
   )
