@@ -56,6 +56,18 @@
         [(<= health_points 30) (send dc set-text-foreground "red")]
         )
       (send dc draw-text (format "~v" health_points) 30 20)
+      (when (equal? game-state 'start) 
+        (send dc set-brush (make-color 0 0 0 0.5) 'solid)
+        (send dc set-pen (make-color 0 0 0 0.5) 0 'solid)
+        (send dc draw-rectangle 0 0 FRAME_WIDTH FRAME_HEIGHT)
+        (send dc draw-text "Press space to start!" (/ FRAME_WIDTH 2) (/ FRAME_HEIGHT 2))
+      )
+      (when (equal? game-state 'ended) 
+        (send dc set-brush (make-color 0 0 0 0.5) 'solid)
+        (send dc set-pen (make-color 0 0 0 0.5) 0 'solid)
+        (send dc draw-rectangle 0 0 FRAME_WIDTH FRAME_HEIGHT)
+        (send dc draw-text "Game over :(" (/ FRAME_WIDTH 2) (/ FRAME_HEIGHT 2))
+      )
       )
     (super-new
      (paint-callback (lambda (canvas dc) (custom-paint-callback canvas dc)))
@@ -70,12 +82,19 @@
         ['right (set! previous-direction current-direction) (set! current-direction 'right)]
         ['up (set! previous-direction current-direction) (set! current-direction 'up)]
         ['down (set! previous-direction current-direction) (set! current-direction 'down)]
-        
+        ['#\space 
+          (case game-state
+            ['start (set! game-state 'running) (send game-timer start 10)]
+            ['ended (reset-game-state) (set! game-state 'running) (send game-timer start 10)]
           )
+        ]
+        
+        )
       )
      )
     )
 
+(define game-state 'start)
 
 (define game-timer
   (new timer%
@@ -150,7 +169,7 @@
             (define current_hp health_points)
             (set! health_points (- current_hp 1))
             (cond
-            [(= health_points 0) (send game-timer stop)]
+              [(= health_points 0) (send game-timer stop) (set! game-state 'ended)]
             )
             ;(set! game-state 'ended)
             )
@@ -167,7 +186,7 @@
 
 
 
-(send game-timer start 10)
+;(send game-timer start 10)
 
 
 (define main-canvas
@@ -219,6 +238,13 @@
    (> obstacle-bottom-y ship-top-y)
    )
   )
+
+(define (reset-game-state)
+  (send spaceship reset-position)
+  (send red_obstacle move-to-far)
+  (send orange_obstacle move-to-far)
+  (send yellow_obstacle move-to-far)
+)
 
 (send main-canvas refresh-now)
 
