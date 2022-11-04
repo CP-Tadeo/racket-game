@@ -1,6 +1,6 @@
 #lang racket/gui
-;(require "car.rkt")
-;(require "square.rkt")
+(require "car.rkt")
+(require "square.rkt")
 
 (require "ship.rkt")
 (require "obstacle.rkt")
@@ -52,9 +52,6 @@
       (send yellow_obstacle draw dc)
       (send dc set-text-foreground "green")
       (send dc draw-text "hp" 30 0)
-      (cond
-        [(<= health_points 30) (send dc set-text-foreground "red")]
-        )
       (send dc draw-text (format "~v" health_points) 30 20)
       )
     (super-new
