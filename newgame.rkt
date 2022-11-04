@@ -83,6 +83,7 @@
         (lambda ()
           ;(send spaceship move)
           ;(display (/ FRAME_WIDTH 4))
+          ;limits are placed here
           (case current-direction
             ['left (unless (< (send spaceship get-x) 0)
                     (send spaceship set-x-position! (- (send spaceship get-x) SPEED))
@@ -100,6 +101,7 @@
                      )
                    ]
             )
+          ;this part makes it so when you click in the current direction, vehicle goes to max speed
           (cond
             [(equal? current-direction previous-direction)
              (case current-direction
