@@ -241,8 +241,10 @@
                 )
               
               (send obstacle move-to-far)
-              (when (< health_points 0)
-                (set! health_points 0)
+              (cond
+                [(or (< health_points 0) (= health_points 0))
+                 (send game-timer stop)
+                 (set! game-state 'ended)]
                 )
               (case (get-field obstacle-color obstacle)
                 ['pink (send obstacle set-y-position! (+ (random 320) 30))]
