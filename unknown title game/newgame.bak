@@ -3,6 +3,7 @@
 (require "ship.rkt")
 (require "obstacle.rkt")
 (require "projectile.rkt")
+(require "sun.rkt")
 
 (define FRAME_HEIGHT 400)
 (define FRAME_WIDTH 1550)
@@ -55,6 +56,7 @@
       ;draw background
       
 
+      ;(send sun draw dc)
       (send dc set-pen LINE_COLOR 8 'solid)
       (send dc draw-line 100 0 100 FRAME_HEIGHT)
       
@@ -85,20 +87,8 @@
         [(<= health_points 3) (send dc set-text-foreground "red")]
         )
       (send dc draw-text (format "~v" health_points) 150 20)
+      (send spaceship draw dc)
       
-      (when (equal? game-state 'start) 
-        (send dc set-brush (make-color 0 0 0 0.5) 'solid)
-        (send dc set-pen (make-color 0 0 0 0.5) 0 'solid)
-        (send dc draw-rectangle 0 0 FRAME_WIDTH FRAME_HEIGHT)
-        (send dc draw-text "Press space to start!" (/ FRAME_WIDTH 2) (/ FRAME_HEIGHT 2))
-      )
-      (when (equal? game-state 'ended) 
-        (send dc set-brush (make-color 0 0 0 0.5) 'solid)
-        (send dc set-pen (make-color 0 0 0 0.5) 0 'solid)
-        (send dc draw-rectangle 0 0 FRAME_WIDTH FRAME_HEIGHT)
-        (send dc draw-text "Game over :(" (/ FRAME_WIDTH 2) (/ FRAME_HEIGHT 2))
-      )
-
       )
     (super-new
      (paint-callback (lambda (canvas dc) (custom-paint-callback canvas dc)))
@@ -114,20 +104,12 @@
         ['right (set! previous-direction current-direction) (set! current-direction 'right)]
         ['up (set! previous-direction current-direction) (set! current-direction 'up)]
         ['down (set! previous-direction current-direction) (set! current-direction 'down)]
-        ['escape
-          (case game-state
-            ['start (set! game-state 'running) (send game-timer start 10)]
-            ['ended (reset-game-state) (set! game-state 'running) (send game-timer start 10)]
         ['#\space (set! is-ship-firing #t)]
           )
-        ]
-        
-        )
       )
      )
     )
 
-(define game-state 'start)
 
 (define game-timer
   (new timer%
@@ -184,79 +166,82 @@
                [(8) (send proj8 fire)]
                [(9) (send proj9 fire)]
                [(10) (send proj10 fire)]
+
+               
                )
-             
+
              (if (equal? (+ bullet-counter 1) 11)
                  (set! bullet-counter 1)
                  (set! bullet-counter (+ bullet-counter 1))
                  )
-             
-             (set! is-ship-firing #f)
-             ]
-            )
+
+            (set! is-ship-firing #f)
+            ]
+           )
           
           ;this part makes it so when you click in the current direction, vehicle goes to max speed
           (cond
             [(equal? current-direction previous-direction)
              (case current-direction
-               ['left (unless (< (send spaceship get-x) 0)
-                        (send spaceship set-x-position! (- (send spaceship get-x) MAX_SPEED))
-                        (for ([projectile projectile-list])
-                          (when (equal? (send projectile get-is-being-fired) #f)
-                            (send projectile set-x-position! (+ (send spaceship get-x) 40))
-                            )
-                          )
-                        )
-                      ]
-               ['right (unless (> (send spaceship get-x) 400)
-                         (send spaceship set-x-position! (+ (send spaceship get-x) MAX_SPEED))
-                         (for ([projectile projectile-list])
-                           (when (equal? (send projectile get-is-being-fired) #f)
-                             (send projectile set-x-position! (+ (send spaceship get-x) 40))
-                             )
+            ['left (unless (< (send spaceship get-x) 0)
+                    (send spaceship set-x-position! (- (send spaceship get-x) MAX_SPEED))
+                     (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
                            )
-                         )
-                       ]
-               ['up  (unless (< (send spaceship get-y) 0)
-                       (send spaceship set-y-position! (- (send spaceship get-y) MAX_SPEED))
-                       (for ([projectile projectile-list])
-                         (when (equal? (send projectile get-is-being-fired) #f)
+                       )
+                     )
+                    ]
+            ['right (unless (> (send spaceship get-x) 400)
+                      (send spaceship set-x-position! (+ (send spaceship get-x) MAX_SPEED))
+                      (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                           )
+                       )
+                      )
+                    ]
+            ['up  (unless (< (send spaceship get-y) 0)
+                    (send spaceship set-y-position! (- (send spaceship get-y) MAX_SPEED))
+                    (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
                            (send projectile set-y-position! (+ (send spaceship get-y) 40))
                            )
-                         )
                        )
-                     ]
-               ['down (unless (> (send spaceship get-bottom-y) (- FRAME_HEIGHT 50))
-                        (send spaceship set-y-position! (+ (send spaceship get-y) MAX_SPEED))
-                        (for ([projectile projectile-list])
-                          (when (equal? (send projectile get-is-being-fired) #f)
-                            (send projectile set-y-position! (+ (send spaceship get-y) 40))
-                            )
-                          )
-                        )
-                      ]
-               )
+                    )
+                  ]
+            ['down (unless (> (send spaceship get-bottom-y) (- FRAME_HEIGHT 50))
+                     (send spaceship set-y-position! (+ (send spaceship get-y) MAX_SPEED))
+                     (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-y-position! (+ (send spaceship get-y) 40))
+                           )
+                       )
+                     )
+                   ]
+            )
              ]
             )
           (for ([obstacle obstacle-list])
             (send obstacle move-obstacle)
-            (when (< (get-field x-pos obstacle) 0)
+            (when (< (get-field x-pos obstacle) -100)
               ;(set! current_hp health_points)
-              (set! health_points (- health_points 1))
+              (set! health_points (- health_points 0))
               (cond
-                [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
-                )
-              
-              (send obstacle move-to-far)
-              (when (< health_points 0)
-                (set! health_points 0)
-                )
+            [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
+            )
+            
+            (send obstacle move-to-far)
+            (when (< health_points 0)
+              (set! health_points 0)
+              )
               (case (get-field obstacle-color obstacle)
                 ['pink (send obstacle set-y-position! (+ (random 320) 30))]
                 ['yellow (send obstacle set-y-position! (+ (random 320) 30))]
                 ['green (send obstacle set-y-position! (+ (random 320) 30))]
                 )
-              )
+            )
+
             )
 
           (for ([projectile projectile-list])
@@ -269,10 +254,18 @@
                   )
                 )
             )
-            )
 
-          (cond [(or (< health_points 0) (= health_points 0)) (send game-timer stop) (set! game-state 'ended)])
-          
+          (when (for/or ([obstacle obstacle-list]) (did-collide obstacle spaceship))
+              ;(set! current_hp health_points)
+              (set! health_points (- health_points 1))
+              (send obstacle move-to-far)
+
+            (cond
+            [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
+            )
+            ;(set! game-state 'ended)
+
+            )
           
           (for ([projectile projectile-list])
             (for ([obstacle obstacle-list])
@@ -288,8 +281,14 @@
                     )
               )
             )
-          
-          
+
+              (case (get-field obstacle-color obstacle)
+                ['pink (send obstacle set-y-position! (+ (random 310) 30))]
+                ['yellow (send obstacle set-y-position! (+ (random 310) 30))]
+                ['green (send obstacle set-y-position! (+ (random 310) 30))]
+                )
+              )
+
             (set! time_elapsed (+ time_elapsed 1))
             (when (> time_elapsed LIMIT)
               (set! blue_color (+ blue_color 10))
@@ -297,7 +296,7 @@
               (set! green_color (+ green_color 10))
               (set! time_elapsed 0)
               )
-            
+            )
 
           (send main-canvas refresh-now)
           )
@@ -308,7 +307,7 @@
 
 
 
-;(send game-timer start 10)
+(send game-timer start 10)
 
 
 
@@ -394,13 +393,6 @@
    (> obstacle-bottom-y ship-top-y)
    )
   )
-
-(define (reset-game-state)
-  (send spaceship reset-position)
-  (send red_obstacle move-to-far)
-  (send orange_obstacle move-to-far)
-  (send yellow_obstacle move-to-far)
-)
 
 (send main-canvas refresh-now)
 
