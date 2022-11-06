@@ -7,7 +7,7 @@
     (init-field [ship-color 'red])
 
     (define ship-bitmap
-      (read-bitmap "ship.png" #:backing-scale 1.2)
+      (read-bitmap "ship.png" #:backing-scale 1.5)
       
       )
 
@@ -20,18 +20,6 @@
     (define left-x-pos 0)
     (define right-x-pos 0)
     (define current-direction 'left)
-
-    #|
-    (define/public (change-direction)
-      ;(display "called")
-      (newline)
-      (display moving-to)
-      (cond
-        [(equal? moving-to 'left) (set! moving-to 'right)]
-        [(equal? moving-to 'right) (set! moving-to 'left)]
-      )
-      )
-    |#
 
     (define/public (move)
       (case moving-to
@@ -64,11 +52,10 @@
     
     (super-new)
     
-    ;#|
+    
     (define/public (draw dc)
       (send dc draw-bitmap ship-bitmap x-pos y-pos)
             )
-    ;|#
 
     (define/public (get-left-x)
       (- x-pos (/ (send ship-bitmap get-width) 2))

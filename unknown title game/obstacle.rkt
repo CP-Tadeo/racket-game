@@ -3,17 +3,16 @@
 (provide obstacle%)
 (define obstacle%
   (class object%
-    (init-field [obstacle-color 'red])
+    (init-field [obstacle-color 'pink])
 
     (define obstacle-bitmap
       (read-bitmap
             (case obstacle-color
-                  ['orange "square_orange.png"]
-                  ['yellow "square_yellow.png"]
-                  ['red "square_red.png"]
-                  ['blue "square_blue.png"]
+                  ['green "enemy_green.png"]
+                  ['yellow "enemy_yellow.png"]
+                  ['pink "enemy_pink.png"]
               )
-            #:backing-scale 6
+            #:backing-scale 10
             )
       )
             
