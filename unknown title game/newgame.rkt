@@ -3,24 +3,33 @@
 (require "ship.rkt")
 (require "obstacle.rkt")
 (require "projectile.rkt")
-
+(require "sun.rkt")
 
 (define FRAME_HEIGHT 400)
 (define FRAME_WIDTH 1550)
 (define LINE_COLOR (make-color 255 255 255))
+(define red_color 60)
+(define green_color 0)
+(define blue_color 150)
+(define BACKGROUND_COLOR (make-color red_color green_color blue_color))
+
 (define START_X (/ (/ FRAME_HEIGHT 2) 2))
 (define START_Y (* 2 (/ FRAME_HEIGHT 5)))
 (define SPEED 4)
 (define MAX_SPEED 7)
 (define current-direction 'neutral)
 (define previous-direction 'left)
+
 (define is-ship-firing #f)
-(define health_points 100)
 (define score 0)
 (define bullet-counter 1)
 
-;(define (first-to-last x) (append (cdr x) (list(car x))))
-;(display (first-to-last (list 1 2 3)))
+(define health_points 5)
+;(define current_hp health_points)
+(define increment_speed 0.3)
+(define LIMIT 4000)
+
+(define time_elapsed 0)
 
 
 (define main-frame
@@ -45,11 +54,14 @@
 
     (define/private (custom-paint-callback canvas dc)
       ;draw background
-
       
+
+      ;(send sun draw dc)
       (send dc set-pen LINE_COLOR 8 'solid)
       (send dc draw-line 100 0 100 FRAME_HEIGHT)
+      
       ;draw things
+      
       (send proj1 draw dc)
       (send proj2 draw dc)
       (send proj3 draw dc)
@@ -61,6 +73,7 @@
       (send proj9 draw dc)
       (send proj10 draw dc)
       (send spaceship draw dc)
+
       
       ;draw obstacles
       (send pink_obstacle draw dc)
@@ -71,18 +84,21 @@
       (send dc draw-text (format "~v" score) 200 20)
       (send dc draw-text "HP" 150 0)
       (cond
-        [(<= health_points 30) (send dc set-text-foreground "red")]
+        [(<= health_points 3) (send dc set-text-foreground "red")]
         )
       (send dc draw-text (format "~v" health_points) 150 20)
+      (send spaceship draw dc)
+      
       )
     (super-new
      (paint-callback (lambda (canvas dc) (custom-paint-callback canvas dc)))
      )
-    (send this set-canvas-background (make-color 0 0 0))
 
+    (send this set-canvas-background (make-color 0 0 0))
+    
     (define/override (on-char event)
-      (display (send event get-key-release-code))
-      (newline)
+      ;(display (send event get-key-release-code))
+      ;(newline)
       (case (send event get-key-release-code)
         ['left (set! previous-direction current-direction) (set! current-direction 'left)]
         ['right (set! previous-direction current-direction) (set! current-direction 'right)]
@@ -194,7 +210,7 @@
                        )
                     )
                   ]
-            ['down (unless (> (send spaceship get-bottom-y) FRAME_HEIGHT)
+            ['down (unless (> (send spaceship get-bottom-y) (- FRAME_HEIGHT 50))
                      (send spaceship set-y-position! (+ (send spaceship get-y) MAX_SPEED))
                      (for ([projectile projectile-list])
                        (when (equal? (send projectile get-is-being-fired) #f)
@@ -209,13 +225,23 @@
           (for ([obstacle obstacle-list])
             (send obstacle move-obstacle)
             (when (< (get-field x-pos obstacle) -100)
+              ;(set! current_hp health_points)
+              (set! health_points (- health_points 0))
+              (cond
+            [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
+            )
+            
             (send obstacle move-to-far)
+            (when (< health_points 0)
+              (set! health_points 0)
+              )
               (case (get-field obstacle-color obstacle)
-                ['red (send obstacle set-y-position! (+ (random 330) 30))]
-                ['yellow (send obstacle set-y-position! (+ (random 330) 30))]
-                ['orange (send obstacle set-y-position! (+ (random 330) 30))]
+                ['pink (send obstacle set-y-position! (+ (random 320) 30))]
+                ['yellow (send obstacle set-y-position! (+ (random 320) 30))]
+                ['green (send obstacle set-y-position! (+ (random 320) 30))]
                 )
             )
+
             )
 
           (for ([projectile projectile-list])
@@ -230,12 +256,15 @@
             )
 
           (when (for/or ([obstacle obstacle-list]) (did-collide obstacle spaceship))
-            (define current_hp health_points)
-            (set! health_points (- current_hp 1))
+              ;(set! current_hp health_points)
+              (set! health_points (- health_points 1))
+              (send obstacle move-to-far)
+
             (cond
-            [(= health_points 0) (send game-timer stop)]
+            [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
             )
             ;(set! game-state 'ended)
+
             )
           
           (for ([projectile projectile-list])
@@ -252,8 +281,23 @@
                     )
               )
             )
-          
-             
+
+              (case (get-field obstacle-color obstacle)
+                ['pink (send obstacle set-y-position! (+ (random 310) 30))]
+                ['yellow (send obstacle set-y-position! (+ (random 310) 30))]
+                ['green (send obstacle set-y-position! (+ (random 310) 30))]
+                )
+              )
+
+            (set! time_elapsed (+ time_elapsed 1))
+            (when (> time_elapsed LIMIT)
+              (set! blue_color (+ blue_color 10))
+              (set! red_color (+ red_color 10))
+              (set! green_color (+ green_color 10))
+              (set! time_elapsed 0)
+              )
+            )
+
           (send main-canvas refresh-now)
           )
         ]
@@ -264,6 +308,7 @@
 
 
 (send game-timer start 10)
+
 
 
 (define main-canvas

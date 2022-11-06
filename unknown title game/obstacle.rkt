@@ -20,6 +20,7 @@
     (field [x-pos 0])
     (field [y-pos 0])
     (field [obs-speed 4])
+    (field [speed-limit 18])
     (super-new)
 
     (define/public (draw dc)
@@ -31,7 +32,21 @@
       )
 
     (define/public (set-y-position! y-position)
+      (when (< obs-speed speed-limit)
+      (set! obs-speed (+ obs-speed (/ (+ (random 5) 1) 10)))
+        )
+      (display obstacle-color)
+      (display obs-speed)
+      (newline)
       (set! y-pos (- y-position (/ (send obstacle-bitmap get-width) 2)))
+      )
+
+    (define/public (set-speed! new_speed)
+      (set! obs-speed new_speed)
+      )
+
+    (define/public (get-speed)
+      obs-speed
       )
 
     (define/public (lower-obstacle)
@@ -47,7 +62,7 @@
       )
 
     (define/public (move-to-far)
-      (set! x-pos 1500)
+      (set! x-pos 1550)
       )
 
     (define/public (get-left-x)

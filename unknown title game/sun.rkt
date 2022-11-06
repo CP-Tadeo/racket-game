@@ -1,25 +1,46 @@
 #lang racket/gui
 
-(provide ship%)
+(provide sun%)
 
-(define ship%
+(define sun%
   (class object%
-    (init-field [ship-color 'red])
+    ;(init-field [ship-color 'red])
+    (define chooser (+ 1 (random 4)))
 
     (define ship-bitmap
-      (read-bitmap "ship.png" #:backing-scale 1.5)
-      
+      (read-bitmap
+       
+       (case chooser
+                [(1) "sun.png"]
+                [(2) "black-hole.png"]
+                [(3) "moon.png"]
+                [(4) "death-star.png"]
+                )
+                   ;#:backing-scale 10
+                  )
       )
 
     (define moving-to 'left)
 
     (define x-pos 0)
-    (define y-pos 0)
+    (define y-pos -30)
     (define MAX_SPEED 10)
 
     (define left-x-pos 0)
     (define right-x-pos 0)
     (define current-direction 'left)
+
+    #|
+    (define/public (change-direction)
+      ;(display "called")
+      (newline)
+      (display moving-to)
+      (cond
+        [(equal? moving-to 'left) (set! moving-to 'right)]
+        [(equal? moving-to 'right) (set! moving-to 'left)]
+      )
+      )
+    |#
 
     (define/public (move)
       (case moving-to
@@ -52,10 +73,11 @@
     
     (super-new)
     
-    
+    ;#|
     (define/public (draw dc)
       (send dc draw-bitmap ship-bitmap x-pos y-pos)
             )
+    ;|#
 
     (define/public (get-left-x)
       (- x-pos (/ (send ship-bitmap get-width) 2))
@@ -78,7 +100,7 @@
       )
 
     (define/public (get-bottom-y)
-      (+ (+ y-pos (send ship-bitmap get-height) 0))
+      (+ (+ y-pos (send ship-bitmap get-height) 40))
       )
     )
   )
