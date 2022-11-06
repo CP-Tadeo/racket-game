@@ -1,24 +1,29 @@
 #lang racket/gui
-;(require "car.rkt")
-;(require "square.rkt")
 
 (require "ship.rkt")
 (require "obstacle.rkt")
+(require "projectile.rkt")
 (require "sun.rkt")
 
 (define FRAME_HEIGHT 400)
 (define FRAME_WIDTH 1550)
+(define LINE_COLOR (make-color 255 255 255))
 (define red_color 60)
 (define green_color 0)
 (define blue_color 150)
 (define BACKGROUND_COLOR (make-color red_color green_color blue_color))
-(define LINE_COLOR (make-color 141 0 0))
+
 (define START_X (/ (/ FRAME_HEIGHT 2) 2))
 (define START_Y (* 2 (/ FRAME_HEIGHT 5)))
 (define SPEED 4)
 (define MAX_SPEED 7)
 (define current-direction 'neutral)
 (define previous-direction 'left)
+
+(define is-ship-firing #f)
+(define score 0)
+(define bullet-counter 1)
+
 (define health_points 5)
 ;(define current_hp health_points)
 (define increment_speed 0.3)
@@ -57,25 +62,40 @@
       
       ;draw things
       
+      (send proj1 draw dc)
+      (send proj2 draw dc)
+      (send proj3 draw dc)
+      (send proj4 draw dc)
+      (send proj5 draw dc)
+      (send proj6 draw dc)
+      (send proj7 draw dc)
+      (send proj8 draw dc)
+      (send proj9 draw dc)
+      (send proj10 draw dc)
+      (send spaceship draw dc)
+
       
       ;draw obstacles
-      (send red_obstacle draw dc)
-      (send orange_obstacle draw dc)
+      (send pink_obstacle draw dc)
+      (send green_obstacle draw dc)
       (send yellow_obstacle draw dc)
       (send dc set-text-foreground "green")
-      (send dc draw-text "hp" 30 0)
+      (send dc draw-text "SCORE:" 200 0)
+      (send dc draw-text (format "~v" score) 200 20)
+      (send dc draw-text "HP" 150 0)
       (cond
         [(<= health_points 3) (send dc set-text-foreground "red")]
         )
-      (send dc draw-text (format "~v" health_points) 30 20)
-
+      (send dc draw-text (format "~v" health_points) 150 20)
       (send spaceship draw dc)
+      
       )
     (super-new
      (paint-callback (lambda (canvas dc) (custom-paint-callback canvas dc)))
      )
-    (send this set-canvas-background (make-color red_color green_color blue_color))
 
+    (send this set-canvas-background (make-color 0 0 0))
+    
     (define/override (on-char event)
       ;(display (send event get-key-release-code))
       ;(newline)
@@ -84,7 +104,7 @@
         ['right (set! previous-direction current-direction) (set! current-direction 'right)]
         ['up (set! previous-direction current-direction) (set! current-direction 'up)]
         ['down (set! previous-direction current-direction) (set! current-direction 'down)]
-        
+        ['#\space (set! is-ship-firing #t)]
           )
       )
      )
@@ -95,45 +115,108 @@
   (new timer%
        [notify-callback
         (lambda ()
-          ;(send spaceship move)
-          ;(display (/ FRAME_WIDTH 4))
-          ;limits are placed here
-          ;(send sun set-x-position! (- (send sun get-x) 0.2))
           (case current-direction
             ['left (unless (< (send spaceship get-x) 0)
                     (send spaceship set-x-position! (- (send spaceship get-x) SPEED))
+                     (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                           )
+                       )
                      )
                     ]
             ['right (unless (> (send spaceship get-x) 400)
                       (send spaceship set-x-position! (+ (send spaceship get-x) SPEED))
+                      (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                           )
+                       )
                       )
                     ]
             ['up  (unless (< (send spaceship get-y) 0)
                     (send spaceship set-y-position! (- (send spaceship get-y) SPEED))
-                    )]
-            ['down (unless (> (send spaceship get-bottom-y)  (- FRAME_HEIGHT 50))
+                    (for ([projectile projectile-list])
+                      (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-y-position! (+ (send spaceship get-y) 40))
+                           )
+                       )
+                    )
+                  ]
+            ['down (unless (> (send spaceship get-bottom-y) FRAME_HEIGHT)
                      (send spaceship set-y-position! (+ (send spaceship get-y) SPEED))
+                     (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-y-position! (+ (send spaceship get-y) 40))
+                           )
+                       )
                      )
                    ]
             )
+          (cond
+            [(equal? is-ship-firing #t)
+             (case bullet-counter
+               [(1) (send proj1 fire)]
+               [(2) (send proj2 fire)]
+               [(3) (send proj3 fire)]
+               [(4) (send proj4 fire)]
+               [(5) (send proj5 fire)]
+               [(6) (send proj6 fire)]
+               [(7) (send proj7 fire)]
+               [(8) (send proj8 fire)]
+               [(9) (send proj9 fire)]
+               [(10) (send proj10 fire)]
+
+               
+               )
+
+             (if (equal? (+ bullet-counter 1) 11)
+                 (set! bullet-counter 1)
+                 (set! bullet-counter (+ bullet-counter 1))
+                 )
+
+            (set! is-ship-firing #f)
+            ]
+           )
+          
           ;this part makes it so when you click in the current direction, vehicle goes to max speed
           (cond
             [(equal? current-direction previous-direction)
              (case current-direction
             ['left (unless (< (send spaceship get-x) 0)
                     (send spaceship set-x-position! (- (send spaceship get-x) MAX_SPEED))
+                     (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                           )
+                       )
                      )
                     ]
             ['right (unless (> (send spaceship get-x) 400)
                       (send spaceship set-x-position! (+ (send spaceship get-x) MAX_SPEED))
+                      (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                           )
+                       )
                       )
                     ]
             ['up  (unless (< (send spaceship get-y) 0)
                     (send spaceship set-y-position! (- (send spaceship get-y) MAX_SPEED))
+                    (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-y-position! (+ (send spaceship get-y) 40))
+                           )
+                       )
                     )
                   ]
             ['down (unless (> (send spaceship get-bottom-y) (- FRAME_HEIGHT 50))
                      (send spaceship set-y-position! (+ (send spaceship get-y) MAX_SPEED))
+                     (for ([projectile projectile-list])
+                       (when (equal? (send projectile get-is-being-fired) #f)
+                           (send projectile set-y-position! (+ (send spaceship get-y) 40))
+                           )
+                       )
                      )
                    ]
             )
@@ -141,41 +224,68 @@
             )
           (for ([obstacle obstacle-list])
             (send obstacle move-obstacle)
-            (when (< (get-field x-pos obstacle) 0)
+            (when (< (get-field x-pos obstacle) -100)
               ;(set! current_hp health_points)
               (set! health_points (- health_points 0))
               (cond
             [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
             )
-              
-
-              
+            
             (send obstacle move-to-far)
             (when (< health_points 0)
               (set! health_points 0)
               )
               (case (get-field obstacle-color obstacle)
-                ['red (send obstacle set-y-position! (+ (random 320) 30))]
+                ['pink (send obstacle set-y-position! (+ (random 320) 30))]
                 ['yellow (send obstacle set-y-position! (+ (random 320) 30))]
-                ['orange (send obstacle set-y-position! (+ (random 320) 30))]
+                ['green (send obstacle set-y-position! (+ (random 320) 30))]
                 )
             )
-            (when (did-collide obstacle spaceship)
+
+            )
+
+          (for ([projectile projectile-list])
+            (when (equal? (send projectile get-is-being-fired) #t)
+                (send projectile move-projectile)
+                (when (> (get-field x-pos projectile) 1500)
+                  (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                  (send projectile set-y-position! (+ (send spaceship get-y) 40))
+                  (send projectile finish-firing)
+                  )
+                )
+            )
+
+          (when (for/or ([obstacle obstacle-list]) (did-collide obstacle spaceship))
               ;(set! current_hp health_points)
               (set! health_points (- health_points 1))
               (send obstacle move-to-far)
-            
-            
+
             (cond
             [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
             )
             ;(set! game-state 'ended)
-              
+
+            )
+          
+          (for ([projectile projectile-list])
+            (for ([obstacle obstacle-list])
+              (cond [(did-collide projectile obstacle)
+                     (send obstacle move-to-far)
+                     (send obstacle set-y-position! (+ (random 330) 30))
+                     (send projectile finish-firing)
+                     (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                     (send projectile set-y-position! (+ (send spaceship get-y) 40))
+                     (define current_score score)
+                     (set! score (+ current_score 1))
+                     ]
+                    )
+              )
+            )
 
               (case (get-field obstacle-color obstacle)
-                ['red (send obstacle set-y-position! (+ (random 310) 30))]
+                ['pink (send obstacle set-y-position! (+ (random 310) 30))]
                 ['yellow (send obstacle set-y-position! (+ (random 310) 30))]
-                ['orange (send obstacle set-y-position! (+ (random 310) 30))]
+                ['green (send obstacle set-y-position! (+ (random 310) 30))]
                 )
               )
 
@@ -186,27 +296,11 @@
               (set! green_color (+ green_color 10))
               (set! time_elapsed 0)
               )
-            #|
-            (set! time_elapsed (+ time_elapsed 1))
-            (when (> time_elapsed LIMIT)
-              
-        (set! sun (new sun%))
-        (send sun set-x-position! 1550)
-              (set! time_elapsed 0)
-              (set! LIMIT 40000)
-        
-        
-        )
-            |#
-            ;(display "time")
-            ;(display time_elapsed)
-            ;(newline)
             )
-          ;(set! current-direction 'neutral
+
           (send main-canvas refresh-now)
           )
         ]
-        ;[interval 1000]
        )
   
   )
@@ -222,36 +316,75 @@
   )
 
 (define spaceship (new ship%))
-;(define sun (new sun%))
 
-(define red_obstacle (new obstacle% [obstacle-color 'red]))
-(send red_obstacle set-x-position! FRAME_WIDTH)
-(send red_obstacle set-y-position! (+ 0 (+ (random 330) 30)))
+(define proj1 (new projectile%))
+(send proj1 set-ship-position! START_X START_Y)
+(send proj1 reset-position)
 
-(define orange_obstacle (new obstacle% [obstacle-color 'orange]))
-(send orange_obstacle set-x-position! FRAME_WIDTH)
-(send orange_obstacle set-y-position! (+ 0 (+ (random 330) 30)))
+(define proj2 (new projectile%))
+(send proj2 set-ship-position! START_X START_Y)
+(send proj2 reset-position)
+
+(define proj3 (new projectile%))
+(send proj3 set-ship-position! START_X START_Y)
+(send proj3 reset-position)
+
+(define proj4 (new projectile%))
+(send proj4 set-ship-position! START_X START_Y)
+(send proj4 reset-position)
+
+(define proj5 (new projectile%))
+(send proj5 set-ship-position! START_X START_Y)
+(send proj5 reset-position)
+
+(define proj6 (new projectile%))
+(send proj6 set-ship-position! START_X START_Y)
+(send proj6 reset-position)
+
+(define proj7 (new projectile%))
+(send proj7 set-ship-position! START_X START_Y)
+(send proj7 reset-position)
+
+(define proj8 (new projectile%))
+(send proj8 set-ship-position! START_X START_Y)
+(send proj8 reset-position)
+
+(define proj9 (new projectile%))
+(send proj9 set-ship-position! START_X START_Y)
+(send proj9 reset-position)
+
+(define proj10 (new projectile%))
+(send proj10 set-ship-position! START_X START_Y)
+(send proj10 reset-position)
+
+(define pink_obstacle (new obstacle% [obstacle-color 'pink]))
+(send pink_obstacle set-x-position! FRAME_WIDTH)
+(send pink_obstacle set-y-position! (+ 0 (+ (random 330) 30)))
+
+(define green_obstacle (new obstacle% [obstacle-color 'green]))
+(send green_obstacle set-x-position! FRAME_WIDTH)
+(send green_obstacle set-y-position! (+ 0 (+ (random 330) 30)))
 
 (define yellow_obstacle (new obstacle% [obstacle-color 'yellow]))
 (send yellow_obstacle set-x-position! FRAME_WIDTH)
 (send yellow_obstacle set-y-position! (+ 0 (+ (random 330) 30)))
 
-
-(define obstacle-list (vector  red_obstacle yellow_obstacle orange_obstacle))
+(define projectile-list (list proj1 proj2 proj3 proj4 proj5 proj6 proj7 proj8 proj9 proj10))
+(define obstacle-list (vector pink_obstacle yellow_obstacle green_obstacle))
 
 (send spaceship set-x-position! START_X)
 (send spaceship set-y-position! START_Y)
 
-(define (did-collide obstacle ship)
-  (define obstacle-left-x (send obstacle get-left-x))
-  (define obstacle-right-x (send obstacle get-right-x))
-  (define obstacle-bottom-y (send obstacle get-bottom-y))
-  (define obstacle-top-y (send obstacle get-top-y))
+(define (did-collide collision-object collidee)
+  (define obstacle-left-x (send collision-object get-left-x))
+  (define obstacle-right-x (send collision-object get-right-x))
+  (define obstacle-bottom-y (send collision-object get-bottom-y))
+  (define obstacle-top-y (send collision-object get-top-y))
 
-  (define ship-left-x (send ship get-left-x))
-  (define ship-right-x (send ship get-right-x))
-  (define ship-bottom-y (send ship get-bottom-y))
-  (define ship-top-y (send ship get-top-y))
+  (define ship-left-x (send collidee get-left-x))
+  (define ship-right-x (send collidee get-right-x))
+  (define ship-bottom-y (send collidee get-bottom-y))
+  (define ship-top-y (send collidee get-top-y))
 
   (and
    (< obstacle-left-x ship-right-x)
@@ -264,5 +397,3 @@
 (send main-canvas refresh-now)
 
 (send main-frame show #t)
-
-;(define game-state 'paused)
