@@ -7,7 +7,7 @@
     (init-field [projectile-color 'default])
 
     (define projectile-bitmap
-      (read-bitmap "projectile.png" #:backing-scale 1.4)
+      (read-bitmap "projectile.png" #:backing-scale 1.2)
       )
         
     (field [x-pos 0])

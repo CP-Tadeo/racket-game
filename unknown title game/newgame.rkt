@@ -7,10 +7,6 @@
 (define FRAME_HEIGHT 400)
 (define FRAME_WIDTH 1550)
 (define LINE_COLOR (make-color 255 255 255))
-(define red_color 60)
-(define green_color 0)
-(define blue_color 150)
-(define BACKGROUND_COLOR (make-color red_color green_color blue_color))
 
 (define START_X (/ (/ FRAME_HEIGHT 2) 2))
 (define START_Y (* 2 (/ FRAME_HEIGHT 5)))
@@ -24,7 +20,6 @@
 (define bullet-counter 1)
 
 (define health_points 5)
-;(define current_hp health_points)
 (define increment_speed 0.3)
 (define LIMIT 4000)
 
@@ -41,25 +36,15 @@
 
 (define game-canvas%
   (class canvas%
-#|
-     (define/override (on-char event)
-      (case (send event get-key-release-code)
-        ['left (send spaceship change-direction)]
-        ['right (send spaceship change-direction)]
-        )
-       (send this refresh-now)
-       )
-    |#
+
 
     (define/private (custom-paint-callback canvas dc)
-      ;draw background
-      
 
+      ;draw background
       (send dc set-pen LINE_COLOR 8 'solid)
       (send dc draw-line 100 0 100 FRAME_HEIGHT)
       
-      ;draw things
-      
+      ;draw projectiles and ship
       (send proj1 draw dc)
       (send proj2 draw dc)
       (send proj3 draw dc)
@@ -73,10 +58,12 @@
       (send spaceship draw dc)
 
       
-      ;draw obstacles
+      ;draw enemies
       (send pink_obstacle draw dc)
       (send green_obstacle draw dc)
       (send yellow_obstacle draw dc)
+
+      ;draw UI
       (send dc set-text-foreground "green")
       (send dc draw-text "SCORE:" 200 0)
       (send dc draw-text (format "~v" score) 200 20)
@@ -85,21 +72,26 @@
         [(<= health_points 3) (send dc set-text-foreground "red")]
         )
       (send dc draw-text (format "~v" health_points) 150 20)
-      
+
+      ;manage start and end screens
       (when (equal? game-state 'start) 
         (send dc set-brush (make-color 0 0 0 0.5) 'solid)
         (send dc set-pen (make-color 0 0 0 0.5) 0 'solid)
         (send dc draw-rectangle 0 0 FRAME_WIDTH FRAME_HEIGHT)
-        (send dc draw-text "Press space to start!" (/ FRAME_WIDTH 2) (/ FRAME_HEIGHT 2))
+        (send dc draw-text "Press escape to start!" (/ FRAME_WIDTH 2) (/ FRAME_HEIGHT 2))
+        (send dc draw-text "Press space to fire, don't let them past you!" (-(/ FRAME_WIDTH 2) 80) (+(/ FRAME_HEIGHT 2) 20))
       )
       (when (equal? game-state 'ended) 
         (send dc set-brush (make-color 0 0 0 0.5) 'solid)
         (send dc set-pen (make-color 0 0 0 0.5) 0 'solid)
         (send dc draw-rectangle 0 0 FRAME_WIDTH FRAME_HEIGHT)
         (send dc draw-text "Game over :(" (/ FRAME_WIDTH 2) (/ FRAME_HEIGHT 2))
+        (send dc draw-text "Final Score:" (-(/ FRAME_WIDTH 2) 50) (+(/ FRAME_HEIGHT 2) 20))
+        (send dc draw-text (format "~v" score) (+(/ FRAME_WIDTH 2) 50) (+(/ FRAME_HEIGHT 2) 20))
       )
 
       )
+
     (super-new
      (paint-callback (lambda (canvas dc) (custom-paint-callback canvas dc)))
      )
@@ -107,8 +99,7 @@
     (send this set-canvas-background (make-color 0 0 0))
     
     (define/override (on-char event)
-      ;(display (send event get-key-release-code))
-      ;(newline)
+      ;handle player input
       (case (send event get-key-release-code)
         ['left (set! previous-direction current-direction) (set! current-direction 'left)]
         ['right (set! previous-direction current-direction) (set! current-direction 'right)]
@@ -117,15 +108,14 @@
         ['escape
           (case game-state
             ['start (set! game-state 'running) (send game-timer start 10)]
-            ['ended (reset-game-state) (set! game-state 'running) (send game-timer start 10)]
+            ['ended (reset-game-state)
+                    (set! game-state 'running)
+                    (send game-timer start 10)])]
         ['#\space (set! is-ship-firing #t)]
           )
-        ]
-        
         )
       )
      )
-    )
 
 (define game-state 'start)
 
@@ -133,12 +123,14 @@
   (new timer%
        [notify-callback
         (lambda ()
+
+          ;Handle player input, also move unfired projectiles alongside ship.
           (case current-direction
             ['left (unless (< (send spaceship get-x) 0)
                     (send spaceship set-x-position! (- (send spaceship get-x) SPEED))
                      (for ([projectile projectile-list])
                        (when (equal? (send projectile get-is-being-fired) #f)
-                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                           (send projectile set-x-position! (+ (send spaceship get-x) 30))
                            )
                        )
                      )
@@ -147,7 +139,7 @@
                       (send spaceship set-x-position! (+ (send spaceship get-x) SPEED))
                       (for ([projectile projectile-list])
                        (when (equal? (send projectile get-is-being-fired) #f)
-                           (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                           (send projectile set-x-position! (+ (send spaceship get-x) 30))
                            )
                        )
                       )
@@ -171,6 +163,7 @@
                      )
                    ]
             )
+          ;handle projectile "firing".
           (cond
             [(equal? is-ship-firing #t)
              (case bullet-counter
@@ -195,7 +188,7 @@
              ]
             )
           
-          ;this part makes it so when you click in the current direction, vehicle goes to max speed
+          ;pushes vehicle to max speed in a direction upon double tapping a directional button.
           (cond
             [(equal? current-direction previous-direction)
              (case current-direction
@@ -203,7 +196,7 @@
                         (send spaceship set-x-position! (- (send spaceship get-x) MAX_SPEED))
                         (for ([projectile projectile-list])
                           (when (equal? (send projectile get-is-being-fired) #f)
-                            (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                            (send projectile set-x-position! (+ (send spaceship get-x) 30))
                             )
                           )
                         )
@@ -212,7 +205,7 @@
                          (send spaceship set-x-position! (+ (send spaceship get-x) MAX_SPEED))
                          (for ([projectile projectile-list])
                            (when (equal? (send projectile get-is-being-fired) #f)
-                             (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                             (send projectile set-x-position! (+ (send spaceship get-x) 30))
                              )
                            )
                          )
@@ -238,10 +231,10 @@
                )
              ]
             )
+          ;handle enemies advancing towards left and HP deductions.
           (for ([obstacle obstacle-list])
             (send obstacle move-obstacle)
             (when (< (get-field x-pos obstacle) 0)
-              ;(set! current_hp health_points)
               (set! health_points (- health_points 1))
               (cond
                 [(or (< health_points 0) (= health_points 0)) (send game-timer stop)]
@@ -259,28 +252,42 @@
               )
             )
 
+          ; handle projectiles being "fired" and "trash collected" off screen. 
           (for ([projectile projectile-list])
             (when (equal? (send projectile get-is-being-fired) #t)
                 (send projectile move-projectile)
                 (when (> (get-field x-pos projectile) 1500)
-                  (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                  (send projectile set-x-position! (+ (send spaceship get-x) 30))
                   (send projectile set-y-position! (+ (send spaceship get-y) 40))
                   (send projectile finish-firing)
                   )
                 )
             )
-            )
 
-          (cond [(or (< health_points 0) (= health_points 0)) (send game-timer stop) (set! game-state 'ended)])
+          ;handle player collision with enemies.
+          (for ([obstacle obstacle-list])
+            (cond [(did-collide obstacle spaceship)
+                   (set! health_points (- health_points 1))
+                   (send obstacle move-to-far)
+                   
+                   (cond
+                     [(or (< health_points 0) (= health_points 0))
+                      (send game-timer stop)
+                      (set! game-state 'ended)]
+                     )
+                   ]
+                  
+                  )
+            )
           
-          
+          ;handle projectile collision with enemies and score addition
           (for ([projectile projectile-list])
             (for ([obstacle obstacle-list])
               (cond [(did-collide projectile obstacle)
                      (send obstacle move-to-far)
                      (send obstacle set-y-position! (+ (random 330) 30))
                      (send projectile finish-firing)
-                     (send projectile set-x-position! (+ (send spaceship get-x) 40))
+                     (send projectile set-x-position! (+ (send spaceship get-x) 30))
                      (send projectile set-y-position! (+ (send spaceship get-y) 40))
                      (define current_score score)
                      (set! score (+ current_score 1))
@@ -290,14 +297,7 @@
             )
           
           
-            (set! time_elapsed (+ time_elapsed 1))
-            (when (> time_elapsed LIMIT)
-              (set! blue_color (+ blue_color 10))
-              (set! red_color (+ red_color 10))
-              (set! green_color (+ green_color 10))
-              (set! time_elapsed 0)
-              )
-            
+          (set! time_elapsed (+ time_elapsed 1))
 
           (send main-canvas refresh-now)
           )
@@ -305,11 +305,6 @@
        )
   
   )
-
-
-
-;(send game-timer start 10)
-
 
 
 (define main-canvas
@@ -376,6 +371,7 @@
 (send spaceship set-x-position! START_X)
 (send spaceship set-y-position! START_Y)
 
+;handles collision between two objects, repurposed for both player-enemy collision and enemy-projectile collision.
 (define (did-collide collision-object collidee)
   (define obstacle-left-x (send collision-object get-left-x))
   (define obstacle-right-x (send collision-object get-right-x))
@@ -395,11 +391,22 @@
    )
   )
 
+;function that resets the game to its base state upon hitting an end screen.
 (define (reset-game-state)
   (send spaceship reset-position)
-  (send red_obstacle move-to-far)
-  (send orange_obstacle move-to-far)
+  (send pink_obstacle move-to-far)
+  (send green_obstacle move-to-far)
   (send yellow_obstacle move-to-far)
+  (set! health_points 5)
+  (set! score 0)
+  (set! time_elapsed 0)
+  (for [(projectile projectile-list)]
+    (send projectile set-x-position! (+ (send spaceship get-x) 30))
+    (send projectile set-y-position! (+ (send spaceship get-y) 40))
+     )
+  (for [(obstacle obstacle-list)]
+    (send obstacle set-speed! 8)
+    )
 )
 
 (send main-canvas refresh-now)
