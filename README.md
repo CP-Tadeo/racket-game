@@ -15,3 +15,6 @@ Stay alive as long as you can while the enemies slowly speed up.
 
 ### How to Play the Game
 Start the game with the Escape key, Move the ship with the arrow keys, double tap a direction to move at max speed in that direction, and fire projectiles with Space.
+
+### Demo Video
+link: https://drive.google.com/file/d/1T73DMZ87FqLZOaswGNRKtIgJNrrd-BdF/view?usp=sharing
